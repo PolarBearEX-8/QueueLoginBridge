@@ -1,0 +1,14 @@
+name: QueueLoginBridge
+version: '${version}'
+main: me.queue.login.QueueLoginBridge
+api-version: '1.21'
+depend: [AuthMe]
+description: Reports real AuthMe login state from the login backend to VelocityQueue.
+commands:
+  queuelogin:
+    description: Check a player's current AuthMe authentication status.
+    usage: /queuelogin <player>
+    permission: queuelogin.admin
+permissions:
+  queuelogin.admin:
+    default: op
