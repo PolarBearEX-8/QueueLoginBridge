@@ -12,13 +12,13 @@ The Gradle wrapper is included. Place the supplied AuthMe JAR at
 .\gradlew.bat build
 ```
 
-Output: `build/libs/QueueLoginBridge-1.0.0.jar`.
+Output: `build/libs/QueueLoginBridge-1.0.1.jar`.
 AuthMe and Paper are compile-only dependencies and are not bundled in the output JAR.
 
 ## Install
 
 1. Install the bridge JAR in `login/plugins/` alongside AuthMe. Do not install it on Velocity or main.
-2. Keep the updated `VelocityQueue-1.0.2-RELEASE.jar` on Velocity, with `queue-server: "login"`.
+2. Keep the updated `VelocityQueue-1.0.8-RELEASE.jar` on Velocity, with `queue-server: "login"`.
 3. For this bridge setup, set `Hooks.velocity: false` in the login backend's AuthMe config.
    The bridge replaces AuthMe's one-shot notifications. This supersedes the old queue README's
    `Hooks.velocity: true` instruction when using this companion plugin. If another integration
@@ -29,17 +29,18 @@ AuthMe and Paper are compile-only dependencies and are not bundled in the output
 
 ## Behavior
 
-Listeners for join, AuthMe login/logout, registration and session restoration check the API
-on the next server tick. A main-thread heartbeat checks every online player every 20 ticks
-and sends their actual `AuthMeApi.isAuthenticated(player)` state. This repairs missed early
-notifications and detects automatic login and administrator changes without relying on a command.
+On join, the bridge checks `AuthMeApi.isRegistered(username)` once and caches the account stage.
+AuthMe login and registration events mark the account registered; unregister and quit events
+update or clear the cache. A main-thread heartbeat checks each online player's actual
+`AuthMeApi.isAuthenticated(player)` state every 20 ticks and sends the cached account stage too.
 On a lagging server, 20 ticks can take longer than one second.
 
-Reports use the existing `authmevelocity:main` channel with two `writeUTF` values:
-`LOGIN` or `LOGOUT`, followed by the carrier player's name. The current VelocityQueue receiver
-accepts only the player's current connection to its configured login backend, blocks client-origin
-packets, and does not re-enqueue an already authenticated player who used `/leave`.
-No Velocity code change is required. Repeated reports do not bypass priority or AntiFlood.
+Login reports use `authmevelocity:main` with two `writeUTF` values: `LOGIN` or `LOGOUT`, followed
+by the carrier player's name. Registration reports use `queue:account` with `REGISTERED` or
+`UNREGISTERED`, followed by the same name. VelocityQueue accepts both only from that player's
+current connection to its configured login backend and consumes registration reports locally.
+It shows `/register <create your password> <re-type your password>` for new accounts and
+`/login <password>` for existing ones. Repeated reports do not bypass priority or AntiFlood.
 
 Being premium, registered, or merely connected is not authentication. Premium automatic login
 works only if the premium integration actually marks the player authenticated in AuthMe.
